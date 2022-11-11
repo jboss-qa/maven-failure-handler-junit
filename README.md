@@ -18,9 +18,9 @@ Or placing XML into `${maven.multiModuleProjectDirectory}/.mvn/extensions.xml`:
 <?xml version="1.0" encoding="UTF-8"?>
 <extensions>
   <extension>
-    <groupId>org.jboss.fuse.maven</groupId>
+    <groupId>org.jboss.qa</groupId>
     <artifactId>maven-failure-handler-junit</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
   </extension>
 </extensions>
 ```
