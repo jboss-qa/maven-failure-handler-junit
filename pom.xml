@@ -4,7 +4,7 @@
 
     <groupId>org.jboss.fuse.maven</groupId>
     <artifactId>maven-failure-handler-junit</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Maven failure handler junit extension</name>
@@ -27,7 +27,7 @@
         <url>https://github.com/jboss-qa/maven-failure-handler-junit</url>
         <connection>scm:git:git://github.com/jboss-qa/maven-failure-handler-junit.git</connection>
         <developerConnection>scm:git:git@github.com:jboss-qa/maven-failure-handler-junit.git</developerConnection>
-        <tag>1.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <developers>
