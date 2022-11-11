@@ -1,4 +1,4 @@
-package org.jboss.fuse.maven;
+package org.jboss.qa.maven;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.maven.eventspy.AbstractEventSpy;
