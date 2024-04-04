@@ -20,7 +20,7 @@ Or placing XML into `${maven.multiModuleProjectDirectory}/.mvn/extensions.xml`:
   <extension>
     <groupId>org.jboss.qa</groupId>
     <artifactId>maven-failure-handler-junit</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
   </extension>
 </extensions>
 ```

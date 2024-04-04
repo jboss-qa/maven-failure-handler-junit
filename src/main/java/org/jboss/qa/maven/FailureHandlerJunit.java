@@ -3,8 +3,15 @@ package org.jboss.qa.maven;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.maven.eventspy.AbstractEventSpy;
 import org.apache.maven.eventspy.EventSpy;
+import org.apache.maven.execution.DefaultMavenExecutionRequest;
 import org.apache.maven.execution.ExecutionEvent;
+import org.apache.maven.execution.MavenExecutionResult;
+import org.apache.maven.lifecycle.LifecycleExecutionException;
+import org.apache.maven.project.DependencyResolutionException;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectBuildingException;
+import org.apache.maven.project.ProjectBuildingResult;
+
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.logging.Logger;
@@ -17,7 +24,11 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Component(role = EventSpy.class)
 public class FailureHandlerJunit extends AbstractEventSpy {
@@ -34,20 +45,74 @@ public class FailureHandlerJunit extends AbstractEventSpy {
     @Override
     public void onEvent(Object event) throws Exception {
         ExecutionEvent executionEvent = null;
+        String baseDirectory = ".";
+        if (event instanceof DefaultMavenExecutionRequest) {
+            DefaultMavenExecutionRequest defaultMavenExecutionRequest = (DefaultMavenExecutionRequest) event;
+            baseDirectory = defaultMavenExecutionRequest.getBaseDirectory();
+        }
+        // use base directory for exceptions from main maven project (not submodules)
+        String targetDirectory = new File(baseDirectory, "target").getAbsolutePath();
+        if (event instanceof MavenExecutionResult) {
+            MavenExecutionResult result = ((MavenExecutionResult) event);
+            for (Throwable throwable : result.getExceptions()) {
+                // Another interesting classes to consider are: ProjectBuildingException, DependencyResolutionException
+                // But we are using more general approach per lifecycle execution
+                String[] groupArtifactIds = new String[2];
+                if (throwable instanceof LifecycleExecutionException) {
+                    LifecycleExecutionException lifecycleExecutionException = (LifecycleExecutionException) throwable;
+                    // if the exception occurred in maven module, it should be in lifecycleExecutionException.getProject()
+                    if (lifecycleExecutionException.getProject() != null && lifecycleExecutionException.getProject().getBuild() != null && lifecycleExecutionException.getProject().getBuild().getDirectory() != null) {
+                        targetDirectory = lifecycleExecutionException.getProject().getBuild().getDirectory();
+                    }
+                    setGroupArtifactIds(lifecycleExecutionException.getProject(), groupArtifactIds);
+                }
+                // if the exception didn't occur in module, set it for the main project
+                setGroupArtifactIds(result.getProject(), groupArtifactIds);
+                createJunitXml(groupArtifactIds[0] == null ? "unknown" : groupArtifactIds[0], groupArtifactIds[1] == null ? "unknown" : groupArtifactIds[1], targetDirectory, throwable);
+            }
+        }
+        // catching project failure event
         if (event instanceof ExecutionEvent &&
                 (executionEvent = (ExecutionEvent) event).getType() == ExecutionEvent.Type.ProjectFailed) {
             final MavenProject project = executionEvent.getSession().getCurrentProject();
-            final String targetDirectory = project.getModel().getBuild().getDirectory();
-            final File surefireReportsFile = new File(targetDirectory, "surefire-reports");
-            final File failsafeReportsFile = new File(targetDirectory, "failsafe-reports");
-            if (!surefireReportsFile.exists() && !failsafeReportsFile.exists()) {
-                final Exception exception = executionEvent.getException();
-                surefireReportsFile.mkdirs();
-                createJunitXml(project.getGroupId(), project.getArtifactId(),
-                        ExceptionUtils.getRootCause(exception).getClass().getName(),
-                        exception.getMessage(), ExceptionUtils.getStackTrace(exception), surefireReportsFile);
+            createJunitXml(project.getGroupId(), project.getArtifactId(), project.getModel().getBuild().getDirectory(), executionEvent.getException());
+        }
+    }
+
+    private void setGroupArtifactIds(MavenProject project, String[] groupArtifactIds) {
+        if (project != null) {
+            if (groupArtifactIds[0] == null) {
+                groupArtifactIds[0] = nullIfEmpty(project.getGroupId());
+            }
+            if (groupArtifactIds[1] == null) {
+                groupArtifactIds[1] = nullIfEmpty(project.getArtifactId());
             }
         }
+    }
+
+    private String nullIfEmpty(String content) {
+        return content == null || "".equals(content) ? null : content;
+    }
+
+    private void createJunitXml(String groupId, String artifactId, String targetDirectory, Throwable exception) {
+        final File surefireReportsFile = new File(targetDirectory, "surefire-reports");
+        final File failsafeReportsFile = new File(targetDirectory, "failsafe-reports");
+        if (!surefireReportsFile.exists() && !failsafeReportsFile.exists()) {
+            surefireReportsFile.mkdirs();
+            createJunitXml(groupId, artifactId,
+                    ExceptionUtils.getRootCause(exception).getClass().getName(),
+                    exception.getMessage(), ExceptionUtils.getStackTrace(exception), surefireReportsFile);
+        }
+    }
+
+    private List<ProjectBuildingResult> findProjectsWithProblems(List<ProjectBuildingResult> projectBuildingResultList) {
+        List<ProjectBuildingResult> projects = new ArrayList<>();
+        for (ProjectBuildingResult projectBuilding : projectBuildingResultList) {
+            if (!projectBuilding.getProblems().isEmpty()) {
+                projects.add(projectBuilding);
+            }
+        }
+        return projects;
     }
 
     private void createJunitXml(String groupId, String artifactId, String errorType, String errorMessage,
@@ -84,5 +149,4 @@ public class FailureHandlerJunit extends AbstractEventSpy {
             logger.error("Failed to create XML report.", exception);
         }
     }
-
 }
