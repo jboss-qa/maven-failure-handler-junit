@@ -105,16 +105,6 @@ public class FailureHandlerJunit extends AbstractEventSpy {
         }
     }
 
-    private List<ProjectBuildingResult> findProjectsWithProblems(List<ProjectBuildingResult> projectBuildingResultList) {
-        List<ProjectBuildingResult> projects = new ArrayList<>();
-        for (ProjectBuildingResult projectBuilding : projectBuildingResultList) {
-            if (!projectBuilding.getProblems().isEmpty()) {
-                projects.add(projectBuilding);
-            }
-        }
-        return projects;
-    }
-
     private void createJunitXml(String groupId, String artifactId, String errorType, String errorMessage,
             String errorStacktrace, File folder) {
         try {
