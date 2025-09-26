@@ -25,6 +25,23 @@ Or placing XML into `${maven.multiModuleProjectDirectory}/.mvn/extensions.xml`:
 </extensions>
 ```
 
+## Deploy to Nexus
+Add credentials to your `settings.xml`:
+
+```
+    <servers>
+        <server>   
+            <id>nexus</id>   
+            <username>username</username>   
+            <password>password</password>      
+    </server>  
+```
+
+Example of deploying final version:
+```
+mvn deploy:deploy-file -DgroupId=org.jboss.qa -DartifactId=maven-failure-handler-junit -Dversion=1.1.0 -Dpackaging=jar -Dfile=target/maven-failure-handler-junit-1.1.0.jar -DgeneratePom=true -DrepositoryId=nexus -Durl=http://nexus-url/repository/fuse-qe-repo
+```
+
 ## Articles and other sources
 * https://stackoverflow.com/questions/41893919/run-a-maven-plugin-when-the-build-fails
 * https://maven.apache.org/studies/extension-demo/
