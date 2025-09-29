@@ -108,6 +108,10 @@ public class FailureHandlerJunit extends AbstractEventSpy {
     private void createJunitXml(String groupId, String artifactId, String errorType, String errorMessage,
             String errorStacktrace, File folder) {
         try {
+            // Allowed chars in XML are: #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+            // Regex removes illegal ASCII control chars:
+            errorMessage = errorMessage.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            errorStacktrace = errorStacktrace.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
             final String fullName = groupId + ".modules." + artifactId;
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
